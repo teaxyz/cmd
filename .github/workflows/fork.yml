@@ -1,0 +1,30 @@
+on:
+  fork:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: ^
+          Manually run this workflow for a repository.
+          As an example, you may use this if a previous run failed.
+        required: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          branch: graph
+
+      - id: rx
+        uses: johngeorgewright/regex-action@v1.1.0
+        with:
+          ref: ${{ github.event.forkee.full_name }}
+          regex: ^(?P<user>[^/]+)/tea-(?P<repo>.+)$
+
+      - run: mkdir -p cmds/${{ fromJSON(steps.rx.outputs.groups).user }}/${{ fromJSON(steps.rx.outputs.groups).repo }}/.keep
+
+      - uses: fregante/setup-git-user@v1
+      - run: git add cmds/${{ fromJSON(steps.rx.outputs.groups).user }}/${{ fromJSON(steps.rx.outputs.groups).repo }}/.keep
+      - run: git commit --message '+${{ fromJSON(steps.rx.outputs.groups).user }}/${{ fromJSON(steps.rx.outputs.groups).repo }}'
+      - run: git push
